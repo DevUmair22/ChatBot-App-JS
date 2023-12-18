@@ -8,7 +8,8 @@ let communication;
 let department;
 let allMessages = []
 var conId
-
+let userData
+let formData = {}
 async function fetchApi() {
   let response = await fetch("http://localhost:8000/core/setting/");
   const data = await response.json();
@@ -28,8 +29,7 @@ async function fetchToken() {
 const ChatModule = (function () {
 
   let conversationsClient
-  let chatClient;
-  let currentChannel;
+
   let conversation;
 
   const initialize = async (token) => {
@@ -189,7 +189,7 @@ const ChatModule = (function () {
 function handleChatInitialization() {
   fetchToken().then(async (token) => {
     await ChatModule.initialize(token);
-    // await ChatModule.createOrJoinChannel(channelName);
+
   });
 }
 
@@ -210,7 +210,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
 
-let formData = {}
+
 function getFormData() {
 
   const name = document.getElementById("name").value;
@@ -259,6 +259,7 @@ const postCustomerData = (data) => {
       handleChatInitialization()
       // Handle the server response as needed
     } else {
+      alert("Error sending form data.");
       console.error('Error sending form data. Server responded with:', xhr.status, xhr.statusText);
     }
   };
@@ -306,7 +307,7 @@ function openConversation() {
 }
 
 function handleWebChat() {
-  let userData = JSON.parse(localStorage.getItem('userData'))
+  userData = JSON.parse(localStorage.getItem('userData'))
   console.log("first", userData)
   document.getElementById("chat-window3").style.display = "block";
   document.getElementById("chat-window2").style.display = "none";
@@ -337,7 +338,7 @@ function handleWebChat() {
 //Gets the text from the input box(user)
 function userResponse(data) {
   formData = { ...formData, customer_query_department: data }
-  console.log("response", formData);
+  console.log("User form data", formData);
   let userText = document.getElementById("textInput").value;
 
   if (data) {
@@ -345,17 +346,18 @@ function userResponse(data) {
       <p>${data}</p>
       <div class="arrow"></div>
     </div>`;
-    if (data === "WebChat") {
+    if (data === "Webchat") {
       handleWebChat()
 
 
-    } else if (data === "SMS") {
+    } else if (data === "sms") {
 
     }
-    else if (data === "Phone Call") {
+    else if (data === "phone call") {
 
     }
     else if (data === "Video Call") {
+      handleWebChat()
 
     } else {
       setTimeout(() => {
@@ -392,21 +394,20 @@ function adminResponse() {
   document.getElementById(
     "messageBox"
   ).innerHTML +=
-    `<div class="second-chat">
+    `<div class="second-chat" style=${botSettings.setting.botMessageBackground}>
           <div class="circle" id="circle-mar"></div>
-          <p>How would you like to be contacted?</p>
+          <p>${botSettings.setting.thirdResponse.message}</p>
           <div class="arrow"></div>
-        </div>
+    </div>
         <div class="second-chat">
         <div class="circle"></div>
         <select name="communication" id="communication"  onChange="handleCommunicationChange(event)">
-        <option >Choose an Option</option>
-          <option value="WebChat">WebChat</option>
-          <option value="SMS">SMS</option>
-          <option value="Video Call">Video Call</option>
-          <option value="Phone Call">Phone Call</option>
-          
-        </select>
+      <option>Choose an option</option>
+      ${botSettings.setting.thirdResponse.options.map((item, index) => `
+        <option value="${item}" key="${index}">${item}</option>
+      `).join('')}
+    </select>
+    
         
       </div>
       `;
@@ -500,7 +501,7 @@ divWindow1.innerHTML += `
 <div class="hi-there">
   <p class="p1">${botSettings.setting.botTitle}</p>
   <br />
-  <p class="p2">${botSettings.setting.secondResponse.message}<br /></p>
+  <p class="p2">${botSettings.setting.firstResponse.greetingMessage}<br /></p>
 </div>
 <div class="start-conversation">
 
@@ -541,24 +542,23 @@ divWindow2.innerHTML += `
 
 <div class="message-box" id="messageBox">
   <div class="hi-there">
-      <p class="p2">Hello there, <b>I am your assistant</b></p><br/>
+      <p class="p2">Welcome  <b>${formData?.customer_name}</b></p><br/>
     <p class="p2">Please choose from options provided below. </p>
   </div>
   <br/>
-  <div class="second-chat">
+  <div class="second-chat" style=${botSettings.setting.botMessageBackground}>
     <div class="circle"></div>
-    <p>${botSettings.setting.botTitle}</p>
+    <p>${botSettings.setting.secondResponse.message}</p>
     <div class="arrow"></div>
   </div>
 
   <div class="second-chat select-Container">
     <div class="circle"></div>
-    <select name="departments" id="departments" onChange="handleDepartmentChange(event)" >
-      <option >Choose an option</option>
-      <option value="Technical">Technical</option>
-      <option value="Finance">Finance</option>
-      <option value="Marketing">Marketing</option>
-      <option value="Human Resource">Human Resource</option>
+   <select name="departments" id="departments" onchange="handleDepartmentChange(event)">
+      <option>Choose an option</option>
+      ${botSettings.setting.secondResponse.options.map((item, index) => `
+        <option value="${item}" key="${index}">${item}</option>
+      `).join('')}
     </select>
 
   </div>
