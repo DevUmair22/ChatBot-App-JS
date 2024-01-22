@@ -10,6 +10,7 @@ let allMessages = []
 var conId
 let userData
 let formData = {}
+let callSelection
 async function fetchApi() {
   let response = await fetch("http://localhost:8000/core/setting/");
   const data = await response.json();
@@ -241,7 +242,7 @@ function getFormData() {
 
 const postCustomerData = (data) => {
   // Create a new XMLHttpRequest
-  localStorage.setItem('userData', JSON.stringify(data))
+
   const xhr = new XMLHttpRequest();
   xhr.open('POST', 'http://localhost:8000/core/customer/', true);
   xhr.setRequestHeader('Content-Type', 'application/json');
@@ -250,7 +251,7 @@ const postCustomerData = (data) => {
   xhr.onload = function () {
     if (xhr.status === 200) {
       // console.log('Server response:', JSON.parse(xhr.responseText));
-      localStorage.setItem('userData', data)
+      localStorage.setItem('userData', JSON.stringify(data))
       var responseObject = JSON.parse(xhr.responseText);
       console.log("responseObject===>", responseObject)
       conId = responseObject.data.conversation_id
@@ -308,7 +309,7 @@ function openConversation() {
 
 function handleWebChat() {
   userData = JSON.parse(localStorage.getItem('userData'))
-  console.log("first", userData)
+  console.log("USERDATA FROM localstorage", userData)
   document.getElementById("chat-window3").style.display = "block";
   document.getElementById("chat-window2").style.display = "none";
 
@@ -337,6 +338,9 @@ function handleWebChat() {
 
 //Gets the text from the input box(user)
 function userResponse(data) {
+
+
+  const excludedItems = ['videocall', 'voicecall'];
   formData = { ...formData, customer_query_department: data }
   console.log("User form data", formData);
   let userText = document.getElementById("textInput").value;
@@ -346,18 +350,40 @@ function userResponse(data) {
       <p>${data}</p>
       <div class="arrow"></div>
     </div>`;
-    if (data === "Webchat") {
-      handleWebChat()
+    if (data.toLowerCase() === "webchat") {
+      window.location.href = `http://localhost:3000/videocall?token=${token}&roomname=${userData.customer_email}`;
+      // handleWebChat()
 
 
-    } else if (data === "sms") {
+    } else if (data.toLowerCase() === "sms") {
 
+      document.getElementById("messageBox").innerHTML += `<div class="first-chat">
+      <p>You will be contacted shortly by one of our Customer Care Representatives via text SMS on ${formData.customer_phone_number}</p>
+      <div class="arrow"></div>
+    </div>`;
     }
-    else if (data === "phone call") {
+    else if (data.toLowerCase() === "call") {
+      document.getElementById("messageBox").innerHTML += `<div class="first-chat">
+      <p>How do you want to be contacted, via audio or video call?</p>
+      <div class="arrow"></div>
+    </div>;
+      <div class="second-chat">
+        <div class="circle"></div>
+        <select name="callSelection" id="callSelection" onChange="handleCallSelection(event)">
+          <option>Choose an option</option>
+          ${botSettings.setting.thirdResponse.options
+          .filter(item => excludedItems.includes(item)) // Exclude items
+          .map((item, index) => `
+    <option value="${item}" key="${index}">${item}</option>
+  `)
+          .join('')}
+        </select>
 
-    }
-    else if (data === "Video Call") {
-      handleWebChat()
+
+      </div>`
+
+      var objDiv = document.getElementById("messageBox");
+      objDiv.scrollTop = objDiv.scrollHeight;
 
     } else {
       setTimeout(() => {
@@ -390,6 +416,8 @@ function userResponse(data) {
 
 //admin Respononse to user's message
 function adminResponse() {
+  const excludedItems = ['videocall', 'voicecall', 'true'];
+
 
   document.getElementById(
     "messageBox"
@@ -403,9 +431,12 @@ function adminResponse() {
         <div class="circle"></div>
         <select name="communication" id="communication"  onChange="handleCommunicationChange(event)">
       <option>Choose an option</option>
-      ${botSettings.setting.thirdResponse.options.map((item, index) => `
-        <option value="${item}" key="${index}">${item}</option>
-      `).join('')}
+     ${botSettings.setting.thirdResponse.options
+      .filter(item => !excludedItems.includes(item)) // Exclude items
+      .map((item, index) => `
+    <option value="${item}" key="${index}">${item}</option>
+  `)
+      .join('')}
     </select>
     
         
@@ -421,7 +452,7 @@ function adminResponse() {
     console.log(communication)
     formData = { ...formData, customer_query_service: communication }
     console.log("response", formData);
-    postCustomerData(formData)
+    // postCustomerData(formData)
     userResponse(communication)
   })
 
@@ -694,5 +725,93 @@ function handleCommunicationChange(e) {
     document.getElementById('communication').disabled = true;
 
   }
+
+}
+
+
+let callSelected = false;
+function handleCallSelection(e) {
+  console.log("callSelection event changer hit")
+  callSelection = e.target.value;
+  if (callSelection && !callSelected) {
+    callSelected = true;
+    document.getElementById('callSelection').disabled = true;
+
+  }
+  callOptions(callSelection)
+
+}
+let schedule
+let callSchedule = false;
+function handleCallSchedular(e) {
+  console.log("callSchedular event changer hit")
+  schedule = e.target.value;
+  if (schedule && !callSchedule) {
+    callSchedule = true;
+    document.getElementById('schedular').disabled = true;
+
+  }
+
+  // document.getElementById("messageBox").innerHTML += `<div class="first-chat">
+  //     <p>${schedule}</p>
+  //     <div class="arrow"></div>
+  //   </div>;`
+
+  schedular(schedule)
+  var objDiv = document.getElementById("messageBox");
+  objDiv.scrollTop = objDiv.scrollHeight;
+}
+
+
+function callOptions(data) {
+  if (data === "voicecall") {
+    document.getElementById("messageBox").innerHTML += `<div class="first-chat">
+      <p>Do you want to call now or schedule it for later?</p>
+      <div class="arrow"></div>
+    </div>;
+      <div class="second-chat">
+        <div class="circle"></div>
+        <select name="schedular" id="schedular" onChange="handleCallSchedular(event)">
+          <option>Choose an option</option>
+    <option value="now" >Call Now</option>
+   <option value="schedule">Schedule for later</option>
+        </select>
+      </div>`
+
+
+
+
+
+  }
+  var objDiv = document.getElementById("messageBox");
+  objDiv.scrollTop = objDiv.scrollHeight;
+  // else if (data === "videocall") {
+
+  //   document.getElementById("messageBox").innerHTML += `<div class="first-chat">
+  //     //   <p>You will be contacted shortly by one of our Customer Care Representatives via Voice Call on ${formData.customer_phone_number}</p>
+  //     //   <div class="arrow"></div>
+  //     // </div>`;
+
+  // }
+
+}
+
+function schedular(data) {
+
+  if (data === "now") {
+
+    document.getElementById("messageBox").innerHTML += `<div class="first-chat">
+<p>You will be contacted shortly by one of our Customer Care Representatives via Voice Call on ${formData.customer_phone_number}</p>
+ <div class="arrow"></div>
+ </div>`
+
+
+  } else if (data === "schedule") {
+
+
+
+  }
+
+
 
 }
