@@ -50,7 +50,73 @@ nav a:hover {
 	padding: 8px 14px;
 	transition: 0.1s;
 }
+.date-time{
+	display: flex;
+	flex-direction: column;
+	flex-wrap: wrap;
+	padding: 1rem;
+	border: 1px solid #4c5aa1;
+	border-radius: 10px;
+	background-color: #fcf6f6;
+	width: 100%;
+	justify-content: center;
+	gap: 10px;
+	margin: 0px auto;
+font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+font-size: 14px;
+font-weight: 500;
+}
+.date-time input{
 
+	padding: 4px 6px;
+	border-radius: 4px;
+	border: 1px dotted #4c5aa1;
+}
+.date-time input:hover{
+
+	padding: 4px;
+	border: 1px solid #4c5aa1;
+	cursor: pointer;
+}
+.loader {
+	width: 48px;
+	height: 48px;
+	margin-left: 110px;
+	margin-top: 30px;
+	border-radius: 50%;
+	position: relative;
+	animation: rotate 1s linear infinite
+  }
+  .loader::before {
+	content: "";
+	box-sizing: border-box;
+	position: absolute;
+	inset: 0px;
+	border-radius: 50%;
+	border: 5px solid #4c5aa1;
+	animation: prixClipFix 2s linear infinite ;
+  }
+
+  @keyframes rotate {
+	100%   {transform: rotate(360deg)}
+  }
+
+  @keyframes prixClipFix {
+	  0%   {clip-path:polygon(50% 50%,0 0,0 0,0 0,0 0,0 0)}
+	  25%  {clip-path:polygon(50% 50%,0 0,100% 0,100% 0,100% 0,100% 0)}
+	  50%  {clip-path:polygon(50% 50%,0 0,100% 0,100% 100%,100% 100%,100% 100%)}
+	  75%  {clip-path:polygon(50% 50%,0 0,100% 0,100% 100%,0 100%,0 100%)}
+	  100% {clip-path:polygon(50% 50%,0 0,100% 0,100% 100%,0 100%,0 0)}
+  }
+  
+.date-time button{
+border-radius: 5px;
+color: white;
+padding: 6px 8px;
+margin-top: 50px;
+border: none;
+background-color:#4c5aa1 ;
+}
 nav #icon {
 	color: white;
 	font-size: 30px;
@@ -144,6 +210,7 @@ h1.title {
 	.homepage {
 		height: 48rem;
 	}
+	
 }
 @media (max-width: 345px) {
 	nav #icon {

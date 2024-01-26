@@ -5,6 +5,7 @@ function myFunction() {
 }
 
 let communication;
+let loaderShow=false;
 let department;
 let allMessages = []
 var conId
@@ -17,7 +18,6 @@ async function fetchApi() {
   localStorage.setItem('setting', JSON.stringify(data));
 }
 
-
 async function fetchToken() {
   let response = await fetch(`http://localhost:8000/core/twilio_video_access_token/?user_identity=${formData.customer_email}&room_name=${formData.customer_email}`);
   const data = await response.json();
@@ -27,29 +27,41 @@ async function fetchToken() {
 }
 
 
+
 const ChatModule = (function () {
 
   let conversationsClient
 
   let conversation;
 
+
+
+
+
   const initialize = async (token) => {
     try {
+      showLoader(); 
+   
       const client = new Twilio.Conversations.Client(token);
       try {
+
         client.on('initialized', () => {
           conversationsClient = client
-
+          hideLoader();
         })
+       
 
         client.on('connectionStateChanged', (state) => {
           conversationsClient = client
           if (state === 'connecting') {
+            showLoader();
             console.log('Connecting to Twilio…')
 
           }
+         
           if (state === 'connected') {
             console.log('You are connected.')
+            
             console.log("conId", conId)
             console.log("I am here", conversationsClient)
             if (conversationsClient) {
@@ -57,6 +69,7 @@ const ChatModule = (function () {
               handleJoinConversation(conId, 3000)
             }
           }
+         
           if (state === 'disconnecting') {
             console.log('Disconnecting from Twilio…')
 
@@ -108,7 +121,12 @@ const ChatModule = (function () {
     } catch (error) {
       console.error('Error initializing Chat client:', error);
     }
-  };
+      finally {
+        hideLoader();
+// Hide loader in case of an error
+      }
+    };
+
 
   const handleJoinConversation = async (conversationSid, retryDelay) => {
     console.log("Trying to join conversation with SID:", conversationSid);
@@ -195,6 +213,31 @@ function handleChatInitialization() {
 }
 
 
+
+const showLoader = () => {
+  loaderShow=true;
+  console.log("Showing Loader")
+  const loader = document.getElementById("loader");
+  const divWindow3 = document.getElementById("divWindow3");
+
+  if (loader && divWindow3) {
+    // Position the loader relative to divWindow3
+    // loader.style.position = "absolute";
+    // loader.style. = divWindow3.offsetTop + "100px";
+    // loader.style.left = divWindow3.offsetLeft + "200px";
+
+    loader.style.display = "block";
+  }
+};
+
+const hideLoader = () => {
+  loaderShow=false;
+  const loader = document.getElementById("loader");
+  if (loader) {
+    loader.style.display = "none";
+  }
+};
+
 document.addEventListener("DOMContentLoaded", function () {
   // Initialize the phone number input with international format
   const phoneNumberInput = document.getElementById("phoneNumber");
@@ -235,14 +278,13 @@ function getFormData() {
 
     // Perform additional actions with formData if needed
   } else {
-    // alert("Please fill out all required fields.");
-    openConversation()
+    alert("Please fill out all required fields.");
+    // openConversation()
   }
 }
 
 const postCustomerData = (data) => {
   // Create a new XMLHttpRequest
-
   const xhr = new XMLHttpRequest();
   xhr.open('POST', 'http://localhost:8000/core/customer/', true);
   xhr.setRequestHeader('Content-Type', 'application/json');
@@ -256,8 +298,6 @@ const postCustomerData = (data) => {
       console.log("responseObject===>", responseObject)
       conId = responseObject.data.conversation_id
       console.log("conversationId", conId, responseObject.data)
-
-      handleChatInitialization()
       // Handle the server response as needed
     } else {
       alert("Error sending form data.");
@@ -268,7 +308,7 @@ const postCustomerData = (data) => {
   // Convert the form data to JSON and send it
   xhr.send(JSON.stringify(data));
 
-}
+} 
 
 
 
@@ -326,7 +366,10 @@ function handleWebChat() {
     <div class="circle"></div>
     <p>How can I help you?</p>
     <div class="arrow"></div>
-  </div>`
+  </div>
+  <div class="loader"  id="loader"></div>
+  `
+
 
   const channelName = `${formData.customer_email}11223344`;
 
@@ -339,10 +382,14 @@ function handleWebChat() {
 //Gets the text from the input box(user)
 function userResponse(data) {
 
-
+  // let Data = false; // Initialize Data as false
   const excludedItems = ['videocall', 'voicecall'];
-  formData = { ...formData, customer_query_department: data }
-  console.log("User form data", formData);
+
+  if (data && !["sms", "call", "webchat", "whatsapp"].includes(data.toLowerCase())) {
+    // Data = true;
+    formData = { ...formData, customer_query_department: data,};
+  }
+  console.log("User form dataDEDEDEDED", formData);
   let userText = document.getElementById("textInput").value;
 
   if (data) {
@@ -351,16 +398,21 @@ function userResponse(data) {
       <div class="arrow"></div>
     </div>`;
     if (data.toLowerCase() === "webchat") {
-      window.location.href = `http://localhost:3000/videocall?token=${token}&roomname=${userData.customer_email}`;
-      // handleWebChat()
+      Data = true;
+      // window.location.href = `http://localhost:3000/videocall?token=${token}&roomname=${userData.customer_email}`;
+   postCustomerData(formData)
+   handleChatInitialization()
 
+    !loaderShow&&  handleWebChat()
 
     } else if (data.toLowerCase() === "sms") {
-
+      Data = true;
+      postCustomerData(formData)
       document.getElementById("messageBox").innerHTML += `<div class="first-chat">
       <p>You will be contacted shortly by one of our Customer Care Representatives via text SMS on ${formData.customer_phone_number}</p>
       <div class="arrow"></div>
     </div>`;
+
     }
     else if (data.toLowerCase() === "call") {
       document.getElementById("messageBox").innerHTML += `<div class="first-chat">
@@ -450,9 +502,9 @@ function adminResponse() {
   document.getElementById("communication").addEventListener("change", (e) => {
     communication = e.target.value
     console.log(communication)
-    formData = { ...formData, customer_query_service: communication }
+    formData = { ...formData, customer_query_service: communication ,schedule:false}
     console.log("response", formData);
-    // postCustomerData(formData)
+    //  postCustomerData(formData)
     userResponse(communication)
   })
 
@@ -479,6 +531,9 @@ addEventListener("keypress", (event) => {
 });
 
 
+// let loader = document.createElement('div');
+// loader.setAttribute('class','loader')
+// loader.setAttribute("id",'loader')
 
 
 let divOpen = document.createElement('div');
@@ -647,7 +702,7 @@ document.body.appendChild(divClose);
 document.body.appendChild(divWindow1);
 document.body.appendChild(divWindow2);
 document.body.appendChild(divWindow3);
-
+// document.body.appendChild(loader)
 
 
 const sendButton = document.getElementById('send-button');
@@ -692,7 +747,7 @@ const handleThirdWindow = () => {
 
 document.getElementById("departments").addEventListener("change", (e) => {
   department = e.target.value
-  console.log(department)
+  console.log("department",department)
 
   userResponse(department)
 })
@@ -733,6 +788,7 @@ let callSelected = false;
 function handleCallSelection(e) {
   console.log("callSelection event changer hit")
   callSelection = e.target.value;
+  formData={...formData,customer_query_service:callSelection}
   if (callSelection && !callSelected) {
     callSelected = true;
     document.getElementById('callSelection').disabled = true;
@@ -743,24 +799,71 @@ function handleCallSelection(e) {
 }
 let schedule
 let callSchedule = false;
-function handleCallSchedular(e) {
-  console.log("callSchedular event changer hit")
+function handleCallSchedular(e,tag) {
+ 
   schedule = e.target.value;
+formData={...formData,schedule:schedule}
+
+  console.log("callSchedular event changer hit",schedule)
   if (schedule && !callSchedule) {
     callSchedule = true;
     document.getElementById('schedular').disabled = true;
 
   }
+if(schedule==="false")
+{
+  console.log("Calling Now")
+  
+  postCustomerData(formData)
+  schedular(schedule,tag)
+
+}else{
 
   // document.getElementById("messageBox").innerHTML += `<div class="first-chat">
   //     <p>${schedule}</p>
   //     <div class="arrow"></div>
   //   </div>;`
-
-  schedular(schedule)
+  schedular(schedule,tag)
+  console.log("callSchedular event changer hit",formData)
+}
   var objDiv = document.getElementById("messageBox");
   objDiv.scrollTop = objDiv.scrollHeight;
+  
 }
+
+function scheduleVoiceCall() {
+  // Get the selected date and time from the dropdowns
+  const scheduledDate = document.getElementById("scheduleDate").value;
+  const formattedTime = document.getElementById("scheduleTime").value;
+  const formattedTimeWithPeriod = convertTo12HourFormat(formattedTime);
+  // Create an object to store the scheduled date and time
+  const scheduledInfo = {
+    date: scheduledDate,
+    time: formattedTimeWithPeriod,
+  };
+
+  // Display a confirmation message
+  let confirmationMessage = `Your Call has been scheduled for ${scheduledInfo.date} at ${scheduledInfo.time}`;
+  document.getElementById("messageBox").innerHTML += `
+    <div class="first-chat">
+      <p>${confirmationMessage}</p>
+      <div class="arrow"></div>
+    </div>`;
+
+  var objDiv = document.getElementById("messageBox");
+  objDiv.scrollTop = objDiv.scrollHeight;
+
+  let data = { ...formData, date: scheduledInfo.date, time: scheduledInfo.time };
+
+  // Send the scheduled date and time to the server
+  postCustomerData(data);
+  console.log("Data to be sent ", data);
+
+  // Clear the date and time inputs after scheduling
+  document.getElementById("scheduleDate").value = "";
+  document.getElementById("scheduleTime").value = "";
+}
+
 
 
 function callOptions(data) {
@@ -771,47 +874,94 @@ function callOptions(data) {
     </div>;
       <div class="second-chat">
         <div class="circle"></div>
-        <select name="schedular" id="schedular" onChange="handleCallSchedular(event)">
+        <select name="schedular" id="schedular" onChange="handleCallSchedular(event,'voice')">
           <option>Choose an option</option>
-    <option value="now" >Call Now</option>
-   <option value="schedule">Schedule for later</option>
+    <option value=false >Call Now</option>
+   <option value=true>Schedule for later</option>
         </select>
       </div>`
 
+  }
+  
+  else if (data === "videocall") {
 
-
-
-
+    document.getElementById("messageBox").innerHTML += `<div class="first-chat">
+      <p>Do you want to call now or schedule it for later?</p>
+      <div class="arrow"></div>
+    </div>;
+      <div class="second-chat">
+        <div class="circle"></div>
+        <select name="schedular" id="schedular" onChange="handleCallSchedular(event,'video')">
+          <option>Choose an option</option>
+          <option value=false>Call Now</option>
+          <option value=true>Schedule for later</option>
+        </select>
+      </div>`
   }
   var objDiv = document.getElementById("messageBox");
   objDiv.scrollTop = objDiv.scrollHeight;
-  // else if (data === "videocall") {
-
-  //   document.getElementById("messageBox").innerHTML += `<div class="first-chat">
-  //     //   <p>You will be contacted shortly by one of our Customer Care Representatives via Voice Call on ${formData.customer_phone_number}</p>
-  //     //   <div class="arrow"></div>
-  //     // </div>`;
-
-  // }
 
 }
 
-function schedular(data) {
+function formattedTime(selectedTime) {
+  const formatted = convertTo12HourFormat(selectedTime);
+  // Display the formatted time in your UI if needed
+  console.log("Formatted Time:", formatted);
+}
 
-  if (data === "now") {
+function convertTo12HourFormat(time24) {
+  const [hours, minutes] = time24.split(':');
+  let period = 'AM';
 
-    document.getElementById("messageBox").innerHTML += `<div class="first-chat">
-<p>You will be contacted shortly by one of our Customer Care Representatives via Voice Call on ${formData.customer_phone_number}</p>
- <div class="arrow"></div>
- </div>`
-
-
-  } else if (data === "schedule") {
-
-
-
+  let hours12 = parseInt(hours, 10);
+  if (hours12 >= 12) {
+    period = 'PM';
+    if (hours12 > 12) {
+      hours12 -= 12;
+    }
   }
 
 
 
+  const formattedTime = `${hours12}:${minutes} ${period}`;
+  return formattedTime;
+}
+
+function formattedTime(selectedTime) {
+  const formatted = convertTo12HourFormat(selectedTime);
+  // Display the formatted time in your UI
+  document.getElementById("formattedTimeDisplay").innerText = formatted;
+  console.log("Formatted Time:", formatted);
+}
+function schedular(data, tag) {
+  console.log("schedular function hitted", data);
+
+  if (data === "false" && tag === "voice") {
+    document.getElementById("messageBox").innerHTML += `<div class="first-chat">
+      <p>You will be contacted shortly by one of our Customer Care Representatives via Voice Call on ${formData.customer_phone_number}</p>
+      <div class="arrow"></div>
+    </div>`;
+  } else if (data === "false" && tag === "video") {
+    document.getElementById("messageBox").innerHTML += `<div class="first-chat">
+      <p>You will be provided with a link to join the video room via a message on ${formData.customer_phone_number}</p>
+      <div class="arrow"></div>
+    </div>`;
+  } else if (data === "true") {
+    document.getElementById("messageBox").innerHTML += `<div class="first-chat">
+      <p>You will be contacted shortly by one of our Customer Care Representatives via Voice Call on ${formData.customer_phone_number}</p>
+      <div class="arrow"></div>
+    </div>`;
+    document.getElementById("messageBox").innerHTML += `
+      <div class="second-chat">
+        <div class="date-time">
+          <label for="scheduleDate">Select Date:</label>
+          <input type="date" id="scheduleDate" name="scheduleDate">
+
+          <label for="scheduleTime">Select Time:</label>
+          <input type="time" id="scheduleTime" name="scheduleTime" step="60" onchange="formattedTime">
+
+          <button onclick="scheduleVoiceCall()">Done</button>
+        </div>
+      </div>`;
+  }
 }
